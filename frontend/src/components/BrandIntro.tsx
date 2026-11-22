@@ -139,7 +139,7 @@ export const BrandIntro: React.FC<BrandIntroProps> = ({ onComplete }) => {
             </p>
             <div className="flex items-center justify-center gap-2 mt-2 text-[11px] text-white/40 font-mono">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-              <span>FOUNDED & DEVELOPED BY <strong className="text-white/80">MR HAMEED IBRAHIM A.</strong></span>
+              <span>ENTERPRISE CYBER DEFENSE LABS</span>
             </div>
           </div>
         </div>

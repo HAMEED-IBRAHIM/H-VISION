@@ -25,7 +25,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
 
         <div className="flex items-center gap-4">
           <span className="hidden md:inline text-xs font-mono text-white/50">
-            FOUNDER: <strong className="text-white">MR HAMEED IBRAHIM A.</strong>
+            ENTERPRISE SOC EDITION
           </span>
           <button
             onClick={onEnter}
@@ -117,10 +117,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
         </div>
       </section>
 
-      {/* Founder Accreditation Footer */}
+      {/* Footer */}
       <footer className="border-t border-white/10 py-10 px-6 text-center bg-[#070b16]">
         <p className="text-xs font-mono text-white/40">
-          H-VISION DEFENSIVE SECURITY PLATFORM · FOUNDED & DEVELOPED BY <strong className="text-white">MR HAMEED IBRAHIM A.</strong>
+          H-VISION AUTONOMOUS DEFENSIVE SECURITY PLATFORM · ALL RIGHTS RESERVED
         </p>
       </footer>
     </div>

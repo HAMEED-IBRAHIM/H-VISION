@@ -75,7 +75,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess }) => {
 
         <div className="mt-6 pt-4 border-t border-white/10 text-center">
           <p className="text-[10px] font-mono text-white/40">
-            H-VISION DEFENSE ENGINE · MR HAMEED IBRAHIM A.
+            H-VISION DEFENSE ENGINE · RESTRICTED OPERATIONAL ACCESS
           </p>
         </div>
       </div>
