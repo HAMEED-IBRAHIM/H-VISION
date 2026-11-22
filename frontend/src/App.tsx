@@ -7,12 +7,16 @@ import {
   Boxes, Radio, Flame, Trophy, Crosshair, LogIn, LogOut, User,
   ShieldCheck, Bug, Plus, Trash2, Bell, BellRing, Download,
   Gauge, Fingerprint, AlertOctagon, ClipboardList, Layers, MapPin, Scan,
-  Skull, Clock, Calendar, ArrowRight, Hash
+  Skull, Clock, Calendar, ArrowRight, Hash, Sparkles, ShieldAlert, ChevronDown
 } from 'lucide-react'
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip
 } from 'recharts'
+import { BrandIntro } from './components/BrandIntro'
+import { LandingPage } from './components/LandingPage'
+import { LoginModal } from './components/LoginModal'
+import { HardeningArena } from './components/HardeningArena'
 
 const BASE_URL = ((import.meta as any).env?.VITE_API_URL || '').replace(/\/+$/, '')
 const API = `${BASE_URL}/api/v1`
@@ -181,6 +185,9 @@ export default function App() {
   }
 
   // ── Core State ──
+  const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem('hvision_intro_seen'))
+  const [showLanding, setShowLanding] = useState(false)
+  const [activeHub, setActiveHub] = useState('hub_command')
   const [activeTab, setActiveTab] = useState('fleet')
   const [apiUp, setApiUp] = useState(false)
   const fleetApps = [
@@ -610,118 +617,219 @@ export default function App() {
     try { await fetch(`${API}/scheduler/run/${id}`, { method: 'POST' }); poll() } catch {}
   }
 
-  const TABS = [
-    { id: 'fleet',      label: 'Fleet Command', icon: Boxes },
-    { id: 'kill_chain', label: 'Kill Chain', icon: Layers },
-    { id: 'soar',       label: 'SOAR Playbooks', icon: ClipboardList },
-    { id: 'discovery',  label: 'API Discovery', icon: Scan },
-    { id: 'darkweb',    label: 'Dark Web Intel', icon: Skull },
-    { id: 'hunt',       label: 'Threat Hunt', icon: Terminal },
-    { id: 'executive',  label: 'Executive Metrics', icon: TrendingUp },
-    { id: 'lifecycle',  label: 'Vuln Lifecycle', icon: RefreshCw },
-    { id: 'pentest_scheduler', label: 'Pen Test Scheduler', icon: Calendar },
-    { id: 'compliance', label: 'Compliance', icon: ShieldCheck },
-    { id: 'honeypot',   label: 'Honeypots', icon: Bug },
-    { id: 'waf_builder',label: 'WAF Builder', icon: Fingerprint },
-    { id: 'war_room',   label: 'War Room', icon: Flame },
-    { id: 'intel',      label: 'Global Intel', icon: Radio },
-    { id: 'analytics',  label: 'Analytics', icon: BarChart2 },
-    { id: 'topology',   label: 'Topology', icon: Network },
-    { id: 'scanner',    label: 'Scanner', icon: Search },
-    { id: 'findings',   label: `Findings ${findings.length > 0 ? `(${findings.length})` : ''}`, icon: AlertCircle },
-    { id: 'patches',    label: 'Remediation Hub', icon: Shield },
-    { id: 'ai',         label: 'AI Swarm', icon: Bot },
-    { id: 'reports',    label: 'Reports', icon: FileText },
+  // ── 5 MASTER HUBS CONFIGURATION ──
+  const MASTER_HUBS = [
+    {
+      id: 'hub_command',
+      label: 'Command & Visibility',
+      desc: 'Fleet telemetry, microservices & topology',
+      icon: Boxes,
+      defaultTab: 'fleet',
+      tabs: [
+        { id: 'fleet',      label: 'Fleet Command',    icon: Boxes },
+        { id: 'executive',  label: 'Executive Metrics', icon: TrendingUp },
+        { id: 'analytics',  label: 'SOC Analytics',    icon: BarChart2 },
+        { id: 'topology',   label: 'Topology Map',     icon: Network },
+        { id: 'intel',      label: 'Threat Radar',     icon: Radio },
+      ]
+    },
+    {
+      id: 'hub_simulation',
+      label: 'Red Team & Hardening',
+      desc: 'Mutation attacks & WAF hardening',
+      icon: Swords,
+      defaultTab: 'hardening',
+      tabs: [
+        { id: 'hardening',  label: '⚡ Hardening Arena (Phase 2)', icon: Flame, badge: 'NEW' },
+        { id: 'scanner',    label: 'Red Team Scanner', icon: Search, badge: isRunning ? 'RUNNING' : undefined },
+        { id: 'findings',   label: `Vulnerabilities ${findings.length > 0 ? `(${findings.length})` : ''}`, icon: AlertCircle, badge: findings.length > 0 ? findings.length : undefined },
+        { id: 'discovery',  label: 'API Discovery',    icon: Scan },
+        { id: 'pentest_scheduler', label: 'Pen Test Scheduler', icon: Calendar },
+      ]
+    },
+    {
+      id: 'hub_defense',
+      label: 'Active Defense & SOAR',
+      desc: 'Playbooks, honeypots, WAF & patches',
+      icon: Shield,
+      defaultTab: 'soar',
+      tabs: [
+        { id: 'soar',       label: 'SOAR Playbooks',   icon: ClipboardList },
+        { id: 'waf_builder',label: 'WAF Builder',      icon: Fingerprint },
+        { id: 'honeypot',   label: 'Honeypots & Canaries', icon: Bug },
+        { id: 'patches',    label: 'Remediation Hub',  icon: ShieldCheck },
+        { id: 'war_room',   label: 'War Room',         icon: AlertOctagon },
+      ]
+    },
+    {
+      id: 'hub_intel',
+      label: 'AI Swarm & Forensics',
+      desc: 'Groq agents, kill-chain & hunting',
+      icon: Bot,
+      defaultTab: 'ai',
+      tabs: [
+        { id: 'ai',         label: 'Groq AI Multi-Agent', icon: Bot },
+        { id: 'hunt',       label: 'Threat Hunting CLI', icon: Terminal },
+        { id: 'kill_chain', label: 'MITRE Kill Chain', icon: Layers },
+        { id: 'darkweb',    label: 'Dark Web Leaks',   icon: Skull },
+      ]
+    },
+    {
+      id: 'hub_governance',
+      label: 'Compliance & Reports',
+      desc: 'Framework scoring, lifecycle & reports',
+      icon: ShieldCheck,
+      defaultTab: 'compliance',
+      tabs: [
+        { id: 'compliance', label: 'Compliance Matrix', icon: ShieldCheck, badge: compliance ? `${compliance.security_posture_score}%` : undefined },
+        { id: 'lifecycle',  label: 'Vuln Lifecycle',   icon: RefreshCw },
+        { id: 'reports',    label: 'Executive Reports', icon: FileText },
+        { id: 'import',     label: 'Import Scan',      icon: Upload },
+      ]
+    }
   ]
 
-  // ── LOGIN GATE ──
+  const TABS = MASTER_HUBS.flatMap(h => h.tabs)
+
+  const selectTab = (tabId: string) => {
+    setActiveTab(tabId)
+    const hub = MASTER_HUBS.find(h => h.tabs.some(t => t.id === tabId))
+    if (hub) setActiveHub(hub.id)
+  }
+
+  const selectHub = (hubId: string) => {
+    setActiveHub(hubId)
+    const hub = MASTER_HUBS.find(h => h.id === hubId)
+    if (hub && !hub.tabs.some(t => t.id === activeTab)) {
+      setActiveTab(hub.defaultTab)
+    }
+  }
+
+  // ── 1. SIGNATURE VISUAL INTRO (NEON FLICKER & CYBER EYE) ──
+  if (showIntro) {
+    return (
+      <BrandIntro
+        onComplete={() => {
+          sessionStorage.setItem('hvision_intro_seen', 'true')
+          setShowIntro(false)
+          setShowLanding(true)
+        }}
+      />
+    )
+  }
+
+  // ── 2. PROJECT CAPABILITIES & ARCHITECTURE LANDING PAGE ──
+  if (showLanding) {
+    return (
+      <LandingPage
+        onEnter={() => {
+          setShowLanding(false)
+        }}
+      />
+    )
+  }
+
+  // ── 3. RESTRICTED AUTHENTICATION GATE ──
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-[#0d1117] flex items-center justify-center" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-        <div className="w-full max-w-sm mx-4">
-          {/* Logo */}
-          <div className="text-center mb-8">
-            <div className="w-12 h-12 rounded-xl bg-[#1f6feb] flex items-center justify-center mx-auto mb-4">
-              <Eye size={22} className="text-white" />
-            </div>
-            <h1 className="text-[#e6edf3] text-2xl font-bold">Sign in to H-VISION</h1>
-            <p className="text-[#8b949e] text-sm mt-1">Security Operations Center</p>
-          </div>
-
-          {/* Card */}
-          <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
-            {loginError && (
-              <div className="bg-[#3d0c0c] border border-[#f85149]/30 rounded-lg px-4 py-2.5 mb-4 text-[#f85149] text-sm flex items-center gap-2">
-                <AlertOctagon size={14} /> {loginError}
-              </div>
-            )}
-            <div className="space-y-4">
-              <div>
-                <label className="text-[#e6edf3] text-sm font-medium block mb-1.5">Username</label>
-                <input value={loginUser} onChange={e => setLoginUser(e.target.value)} placeholder="admin"
-                  className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] text-sm outline-none focus:border-[#1f6feb] focus:ring-1 focus:ring-[#1f6feb]/30 transition-all placeholder-[#6e7681]" />
-              </div>
-              <div>
-                <label className="text-[#e6edf3] text-sm font-medium block mb-1.5">Password</label>
-                <input value={loginPass} onChange={e => setLoginPass(e.target.value)} type="password" placeholder="••••••••"
-                  onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                  className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] text-sm outline-none focus:border-[#1f6feb] focus:ring-1 focus:ring-[#1f6feb]/30 transition-all placeholder-[#6e7681]" />
-              </div>
-              <button onClick={handleLogin} disabled={loginLoading}
-                className="w-full bg-[#1f6feb] hover:bg-[#388bfd] disabled:opacity-60 text-white py-2 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2">
-                <LogIn size={15} /> {loginLoading ? 'Signing in...' : 'Sign in'}
-              </button>
-            </div>
-            <div className="mt-4 pt-4 border-t border-[#30363d]">
-              <p className="text-[#6e7681] text-xs text-center mb-2">Quick access</p>
-              <div className="grid grid-cols-3 gap-2">
-                {[{u:'admin',r:'Admin'},{u:'analyst',r:'Analyst'},{u:'viewer',r:'Viewer'}].map(c => (
-                  <button key={c.u} onClick={() => { setLoginUser(c.u); setLoginPass('demo123') }}
-                    className="text-xs bg-[#21262d] border border-[#30363d] rounded-lg py-1.5 text-[#8b949e] hover:text-[#e6edf3] hover:border-[#484f58] transition-all">
-                    {c.r}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <p className="text-center text-[#6e7681] text-xs mt-6">H-VISION Enterprise Security Platform</p>
-        </div>
-      </div>
-
+      <LoginModal
+        onLoginSuccess={(u) => {
+          setIsLoggedIn(true)
+          setCurrentUser(u)
+          const role = u.toLowerCase().includes('admin') ? 'admin' : 'analyst'
+          setCurrentRole(role)
+          localStorage.setItem('hvision_auth', 'true')
+          localStorage.setItem('hvision_user', u)
+          localStorage.setItem('hvision_role', role)
+        }}
+      />
     )
   }
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-[#e6edf3] flex" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
 
-      {/* ── SIDEBAR ─────────────────────────────────────────────── */}
-      <aside className="w-60 bg-[#161b22] border-r border-[#30363d] flex flex-col shrink-0">
+      {/* ── SIDEBAR (CONSOLIDATED 5 MASTER HUBS) ─────────────────── */}
+      <aside className="w-64 bg-[#161b22] border-r border-[#30363d] flex flex-col shrink-0">
         {/* Logo */}
-        <div className="px-4 py-4 border-b border-[#30363d]">
+        <div className="px-4 py-4 border-b border-[#30363d] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#1f6feb] flex items-center justify-center">
-              <Eye size={15} className="text-white" />
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-black font-extrabold shadow-[0_0_15px_rgba(0,240,255,0.3)]">
+              <Eye size={17} />
             </div>
             <div>
-              <p className="font-bold text-sm text-[#e6edf3]">H-VISION</p>
-              <p className="text-[#6e7681] text-[10px]">Security Operations</p>
+              <p className="font-extrabold text-sm text-[#e6edf3] tracking-wider leading-none">H-VISION</p>
+              <p className="text-[#6e7681] text-[9px] font-mono mt-0.5">Autonomous SOC</p>
             </div>
           </div>
+          <button
+            onClick={() => setShowLanding(true)}
+            title="View Project Capabilities"
+            className="text-[#6e7681] hover:text-cyan-400 p-1 rounded hover:bg-[#21262d] transition-colors"
+          >
+            <Sparkles size={14} />
+          </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-          {TABS.map(t => (
-            <button key={t.id} onClick={() => setActiveTab(t.id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm transition-all text-left
-                ${activeTab === t.id
-                  ? 'bg-[#1f6feb]/15 text-[#58a6ff] font-medium'
-                  : 'text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#21262d]'}`}>
-              <t.icon size={14} className={activeTab === t.id ? 'text-[#58a6ff]' : 'text-[#6e7681]'} />
-              <span className="truncate">{t.label}</span>
-              {t.id === 'scanner' && isRunning && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-red-400 animate-ping" />}
-            </button>
-          ))}
+        {/* 5 Master Hub Navigation */}
+        <nav className="flex-1 px-2 py-3 space-y-1 overflow-y-auto">
+          {MASTER_HUBS.map(hub => {
+            const isHubActive = activeHub === hub.id || hub.tabs.some(t => t.id === activeTab)
+            const HubIcon = hub.icon
+            return (
+              <div key={hub.id} className="space-y-0.5">
+                <button
+                  onClick={() => selectHub(hub.id)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all text-left group
+                    ${isHubActive
+                      ? 'bg-gradient-to-r from-[#1f6feb]/20 to-[#1f6feb]/5 text-[#58a6ff] font-semibold border-l-2 border-[#58a6ff]'
+                      : 'text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#21262d]'}`}
+                >
+                  <HubIcon size={15} className={isHubActive ? 'text-[#58a6ff]' : 'text-[#6e7681] group-hover:text-[#c9d1d9]'} />
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-xs font-semibold leading-tight">{hub.label}</p>
+                    <p className="text-[10px] text-[#6e7681] truncate">{hub.desc}</p>
+                  </div>
+                  {hub.id === 'hub_simulation' && isRunning && (
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-ping shrink-0" />
+                  )}
+                  {hub.id === 'hub_simulation' && findings.length > 0 && !isRunning && (
+                    <span className="text-[10px] bg-red-900/60 text-red-300 px-1.5 py-0.2 rounded-full font-mono">
+                      {findings.length}
+                    </span>
+                  )}
+                </button>
+
+                {/* Sub-tabs shown if Hub is active */}
+                {isHubActive && (
+                  <div className="pl-4 pr-1 py-1 space-y-0.5 border-l border-[#30363d]/60 ml-3">
+                    {hub.tabs.map(t => {
+                      const SubIcon = t.icon
+                      const isSubActive = activeTab === t.id
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => selectTab(t.id)}
+                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-all text-left
+                            ${isSubActive
+                              ? 'bg-[#1f6feb]/15 text-[#58a6ff] font-medium'
+                              : 'text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#21262d]/60'}`}
+                        >
+                          <SubIcon size={12} className={isSubActive ? 'text-[#58a6ff]' : 'text-[#6e7681]'} />
+                          <span className="truncate flex-1">{t.label}</span>
+                          {t.badge && (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-900/50 text-cyan-300 font-mono">
+                              {t.badge}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </nav>
 
         {/* System Info & Credits */}
@@ -788,6 +896,20 @@ export default function App() {
             <div className="flex items-center gap-1.5 bg-[#1a4a2e] border border-[#2d6a3f] rounded-md px-3 py-1.5 text-xs text-[#3fb950] font-semibold">
               <Zap size={11} /> 4 Agents Active
             </div>
+            <button
+              onClick={() => setShowLanding(true)}
+              className="flex items-center gap-1.5 bg-[#1f6feb]/15 border border-[#1f6feb]/40 hover:border-[#1f6feb] rounded-md px-3 py-1.5 text-xs text-[#58a6ff] font-semibold transition-colors"
+              title="View Project Capabilities & Architecture Overview"
+            >
+              <Eye size={12} /> Project Showcase
+            </button>
+            <button
+              onClick={() => setShowIntro(true)}
+              className="flex items-center gap-1.5 bg-[#21262d] border border-[#30363d] hover:border-[#484f58] rounded-md px-3 py-1.5 text-xs text-[#8b949e] hover:text-[#e6edf3] font-semibold transition-colors"
+              title="Replay Neon Flicker Brand Intro"
+            >
+              <Sparkles size={11} className="text-yellow-400" /> Intro
+            </button>
             <button onClick={exportPDF} className="flex items-center gap-1.5 bg-[#21262d] border border-[#30363d] hover:border-[#484f58] rounded-md px-3 py-1.5 text-xs text-[#c9d1d9] font-semibold transition-colors">
               <Download size={11} /> Export PDF
             </button>
@@ -798,6 +920,60 @@ export default function App() {
         </header>
 
         <main className="flex-1 overflow-y-auto p-6 bg-[#0d1117]">
+
+          {/* Quick Sub-Tab Bar for Active Hub */}
+          {(() => {
+            const currentHub = MASTER_HUBS.find(h => h.id === activeHub || h.tabs.some(t => t.id === activeTab)) || MASTER_HUBS[0]
+            return (
+              <div className="mb-6 pb-3 border-b border-[#30363d] flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-mono text-[#8b949e] uppercase tracking-wider mr-1">
+                    {currentHub.label} :
+                  </span>
+                  {currentHub.tabs.map(t => {
+                    const SubIcon = t.icon
+                    const isSubActive = activeTab === t.id
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => selectTab(t.id)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                          isSubActive
+                            ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_15px_rgba(0,240,255,0.15)]'
+                            : 'bg-[#161b22] text-[#8b949e] border border-[#30363d] hover:text-[#e6edf3] hover:border-[#484f58]'
+                        }`}
+                      >
+                        <SubIcon size={13} className={isSubActive ? 'text-cyan-400' : 'text-[#6e7681]'} />
+                        <span>{t.label}</span>
+                        {t.badge && (
+                          <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded ${
+                            isSubActive ? 'bg-cyan-400 text-black font-bold' : 'bg-[#21262d] text-cyan-400'
+                          }`}>
+                            {t.badge}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowLanding(true)}
+                    className="flex items-center gap-1.5 text-xs text-[#58a6ff] hover:text-[#79c0ff] bg-[#1f6feb]/10 hover:bg-[#1f6feb]/20 border border-[#1f6feb]/30 px-2.5 py-1 rounded-md transition-all font-mono"
+                  >
+                    <Eye size={12} /> Project Capabilities
+                  </button>
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* ═══════════════ ADVERSARIAL HARDENING TAB (PHASE 2) ═══════════════ */}
+          {activeTab === 'hardening' && (
+            <div className="space-y-5">
+              <HardeningArena apiBaseUrl={BASE_URL} onRuleDeployed={poll} />
+            </div>
+          )}
 
 
           {/* ═══════════════ FLEET TAB ═══════════════ */}

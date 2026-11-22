@@ -46,12 +46,13 @@ app.include_router(soar.router, prefix="/api/v1")
 app.include_router(discovery.router, prefix="/api/v1")
 app.include_router(timeline.router, prefix="/api/v1")
 
-from app.routes import darkweb, hunt, metrics, lifecycle, scheduler
+from app.routes import darkweb, hunt, metrics, lifecycle, scheduler, hardening
 app.include_router(darkweb.router, prefix="/api/v1")
 app.include_router(hunt.router, prefix="/api/v1")
 app.include_router(metrics.router, prefix="/api/v1")
 app.include_router(lifecycle.router, prefix="/api/v1")
 app.include_router(scheduler.router, prefix="/api/v1")
+app.include_router(hardening.router, prefix="/api/v1")
 
 @app.get("/health")
 @app.get("/api/v1/health")
