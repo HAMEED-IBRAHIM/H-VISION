@@ -712,7 +712,7 @@ export default function App() {
         onComplete={() => {
           sessionStorage.setItem('hvision_intro_seen', 'true')
           setShowIntro(false)
-          setShowLanding(true)
+          setShowLanding(false)
         }}
       />
     )
