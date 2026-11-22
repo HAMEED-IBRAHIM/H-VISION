@@ -14,7 +14,8 @@ import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip
 } from 'recharts'
 
-const API = 'http://localhost:8000/api/v1'
+const BASE_URL = ((import.meta as any).env?.VITE_API_URL || '').replace(/\/+$/, '')
+const API = `${BASE_URL}/api/v1`
 
 // ── Utility ───────────────────────────────────────────────────────────────
 const SEVERITY_STYLE: Record<string, string> = {
@@ -192,7 +193,7 @@ export default function App() {
   const [findings, setFindings] = useState<any[]>([])
   const [history, setHistory] = useState<any[]>([])
   const [socLogs, setSocLogs] = useState<string[]>([])
-  const [targetUrl, setTargetUrl] = useState('http://target_app:8001')
+  const [targetUrl, setTargetUrl] = useState('http://localhost:8001')
   const [targetDesc, setTargetDesc] = useState('Built-in Lab (Deliberately Vulnerable App)')
   const [selectedPhases, setSelectedPhases] = useState<string[]>([])
   const [launching, setLaunching] = useState(false)
@@ -220,6 +221,8 @@ export default function App() {
   const [newRuleDesc, setNewRuleDesc] = useState('')
   // SOAR, Kill Chain, Discovery
   const [soarPlaybooks, setSoarPlaybooks] = useState<any[]>([])
+  const [executingPb, setExecutingPb] = useState<string | null>(null)
+  const [executedPbs, setExecutedPbs] = useState<Record<string, string>>({})
   const [killChain, setKillChain] = useState<any[]>([])
   const [discoveryResults, setDiscoveryResults] = useState<any>(null)
   const [discoveryEndpoints, setDiscoveryEndpoints] = useState<any[]>([])
@@ -250,7 +253,7 @@ export default function App() {
 
   const poll = useCallback(async () => {
     try {
-      const h = await fetch('http://localhost:8000/health')
+      const h = await fetch(`${BASE_URL}/health`)
       setApiUp(h.ok)
     } catch { setApiUp(false) }
     try {
@@ -271,7 +274,7 @@ export default function App() {
       if (p.ok) { const pd = await p.json(); setPatches(pd.items || []) }
     } catch {}
     try {
-      const w = await fetch(`http://localhost:8000/waf/rules`)
+      const w = await fetch(`${BASE_URL}/waf/rules`)
       if (w.ok) { const wd = await w.json(); setWafRules(wd.rules || []) }
     } catch {}
     // Enterprise: Compliance score
@@ -281,11 +284,11 @@ export default function App() {
     } catch {}
     // Enterprise: Honeypot traps
     try {
-      const hp = await fetch(`http://localhost:8000/honeypot/traps`)
+      const hp = await fetch(`${BASE_URL}/honeypot/traps`)
       if (hp.ok) { const hd = await hp.json(); setHoneypotTraps(hd.traps || []) }
     } catch {}
     try {
-      const hs = await fetch(`http://localhost:8000/honeypot/stats`)
+      const hs = await fetch(`${BASE_URL}/honeypot/stats`)
       if (hs.ok) { const hsd = await hs.json(); setHoneypotStats(hsd) }
     } catch {}
     // SOAR Playbooks
@@ -390,8 +393,10 @@ export default function App() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: msg })
       })
-      const d = await r.json()
-      setMessages(m => [...m, { role: 'assistant', text: r.ok ? d.reply : `Error ${r.status}: ${d.detail}` }])
+      const text = await r.text()
+      let d: any = {}
+      try { d = JSON.parse(text) } catch { d = { detail: text } }
+      setMessages(m => [...m, { role: 'assistant', text: r.ok ? d.reply : `Error ${r.status}: ${d.detail || text}` }])
     } catch (e: any) { setMessages(m => [...m, { role: 'assistant', text: `Network error: ${e.message}` }]) }
     setChatLoading(false)
   }
@@ -456,7 +461,7 @@ export default function App() {
       description: newRuleDesc || `Custom rule: block ${newRuleField} matching pattern`
     }
     try {
-      const r = await fetch('http://localhost:8000/waf/rules', {
+      const r = await fetch(`${BASE_URL}/waf/rules`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(rule)
       })
@@ -532,7 +537,7 @@ export default function App() {
     try {
       const r = await fetch(`${API}/discovery/scan`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target_url: 'http://juice-shop:3000' })
+        body: JSON.stringify({ target_url: 'http://localhost:8001' })
       })
       if (r.ok) {
         const d = await r.json()
@@ -546,9 +551,19 @@ export default function App() {
 
   // Execute SOAR playbook
   const executePlaybook = async (id: string) => {
+    setExecutingPb(id)
     try {
-      await fetch(`${API}/soar/playbooks/${id}/execute`, { method: 'POST' })
-    } catch {}
+      const r = await fetch(`${API}/soar/playbooks/${id}/execute`, { method: 'POST' })
+      if (r.ok) {
+        const d = await r.json()
+        setExecutedPbs(prev => ({ ...prev, [id]: `✅ ${d.execution_id}: Threat Mitigated!` }))
+      } else {
+        setExecutedPbs(prev => ({ ...prev, [id]: `❌ Error: ${r.status}` }))
+      }
+    } catch (e: any) {
+      setExecutedPbs(prev => ({ ...prev, [id]: `❌ ${e.message}` }))
+    }
+    setExecutingPb(null)
   }
 
   // Threat Hunt
@@ -1909,10 +1924,15 @@ export default function App() {
                         <h4 className="text-white font-bold text-sm">{pb.name}</h4>
                         <p className="text-white/40 text-[10px] mt-0.5">Trigger: <span className="text-sky-400 font-mono">{pb.trigger}</span> • Severity: <span className="text-orange-400">{pb.severity_threshold}+</span></p>
                       </div>
-                      <button onClick={() => executePlaybook(pb.id)}
-                        className="flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg shadow-sky-900/30">
-                        <Play size={12} /> Execute
-                      </button>
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <button onClick={() => executePlaybook(pb.id)} disabled={executingPb === pb.id}
+                          className="flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg shadow-sky-900/30 disabled:opacity-50">
+                          <Play size={12} /> {executingPb === pb.id ? 'Executing...' : 'Execute'}
+                        </button>
+                        {executedPbs[pb.id] && (
+                          <span className="text-[10px] text-emerald-400 font-mono animate-pulse">{executedPbs[pb.id]}</span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-1 overflow-x-auto pb-2">
                       {pb.steps.map((step: any, i: number) => (

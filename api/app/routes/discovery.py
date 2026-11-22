@@ -1,5 +1,6 @@
 import logging
 import time
+import asyncio
 import httpx
 from fastapi import APIRouter
 from typing import List, Dict, Any
@@ -45,7 +46,7 @@ SECURITY_HEADERS_CHECKLIST = [
 @router.post("/scan")
 async def scan_target(body: dict = None):
     """Discover all endpoints on a target application and analyze its attack surface."""
-    target_url = (body or {}).get("target_url", "http://juice-shop:3000")
+    target_url = (body or {}).get("target_url", "http://localhost:8001")
     
     global DISCOVERED_ENDPOINTS, SCAN_RESULTS
     DISCOVERED_ENDPOINTS = []
@@ -61,15 +62,14 @@ async def scan_target(body: dict = None):
         "risk_summary": {},
     }
     
-    async with httpx.AsyncClient(timeout=5.0, follow_redirects=True) as client:
-        # 1. Probe common paths
-        for path in COMMON_PATHS:
+    async with httpx.AsyncClient(timeout=2.0, follow_redirects=True) as client:
+        # 1. Probe common paths concurrently
+        async def probe_path(path: str):
             try:
                 url = f"{target_url}{path}"
                 resp = await client.get(url)
                 status = resp.status_code
-                
-                endpoint = {
+                return {
                     "path": path,
                     "status_code": status,
                     "content_type": resp.headers.get("content-type", "unknown"),
@@ -78,14 +78,15 @@ async def scan_target(body: dict = None):
                     "accessible": status < 400,
                     "methods": ["GET"],
                 }
-                DISCOVERED_ENDPOINTS.append(endpoint)
-                
-                # Count status codes
-                sc = str(status)
-                results["status_codes"][sc] = results["status_codes"].get(sc, 0) + 1
-                
             except Exception:
-                pass
+                return None
+
+        probe_results = await asyncio.gather(*(probe_path(p) for p in COMMON_PATHS), return_exceptions=True)
+        for item in probe_results:
+            if isinstance(item, dict) and item:
+                DISCOVERED_ENDPOINTS.append(item)
+                sc = str(item["status_code"])
+                results["status_codes"][sc] = results["status_codes"].get(sc, 0) + 1
         
         # 2. Check security headers on root
         try:

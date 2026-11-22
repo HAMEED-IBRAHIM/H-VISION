@@ -47,6 +47,7 @@ async def chat_with_hvision(
     from sqlalchemy.future import select
     from sqlalchemy import desc
     from app.database.models import Incident
+    db_incidents = []
     try:
         result = await db.execute(
             select(Incident).order_by(desc(Incident.created_at)).limit(30)

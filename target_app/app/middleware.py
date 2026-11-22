@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class CaptureMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
         super().__init__(app)
-        self.api_url = os.getenv("API_URL", "http://api:8000")
+        self.api_url = os.getenv("API_URL", "http://localhost:8000")
         self.internal_token = os.getenv("INTERNAL_SERVICE_TOKEN", "change-me")
         
     async def dispatch(self, request: Request, call_next):

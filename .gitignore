@@ -1,0 +1,30 @@
+# Environment files & secrets
+.env
+*.env
+api/.env
+target_app/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Chroma & local logs
+chroma_data/
+*.log
+chroma_*.txt
+
+# Build output
+frontend/dist/
+frontend/node_modules/.vite/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
