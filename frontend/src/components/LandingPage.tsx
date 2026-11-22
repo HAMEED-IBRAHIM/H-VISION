@@ -3,6 +3,7 @@ import {
   Shield, Cpu, Swords, Lock, Terminal, BarChart2, CheckCircle,
   Zap, ArrowRight, Layers, Globe, Eye
 } from 'lucide-react';
+import heroBanner from '../assets/hvision-hero.jpg';
 
 interface LandingPageProps {
   onEnter: () => void;
@@ -51,11 +52,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
           </span>
         </h1>
 
-        <p className="text-base md:text-lg text-white/60 max-w-3xl mx-auto mb-10 leading-relaxed">
+        <p className="text-base md:text-lg text-white/60 max-w-3xl mx-auto mb-8 leading-relaxed">
           H-VISION combines real-time offensive Red Team attack simulation with an autonomous Blue Team AI Swarm
           to automatically discover vulnerabilities, write WAF rules, stress-test them with adversarial mutations,
           and deploy self-healing security patches.
         </p>
+
+        {/* Hero Visual Card */}
+        <div className="relative max-w-4xl mx-auto rounded-2xl overflow-hidden border border-white/20 shadow-[0_0_50px_rgba(0,240,255,0.25)] mb-10 group">
+          <img 
+            src={heroBanner} 
+            alt="H-VISION Autonomous Red vs Blue Multiagent SOC" 
+            className="w-full h-auto object-cover max-h-[380px] filter brightness-105 contrast-105"
+          />
+        </div>
 
         <div className="flex flex-wrap items-center justify-center gap-4">
           <button
