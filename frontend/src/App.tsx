@@ -7,7 +7,8 @@ import {
   Boxes, Radio, Flame, Trophy, Crosshair, LogIn, LogOut, User,
   ShieldCheck, Bug, Plus, Trash2, Bell, BellRing, Download,
   Gauge, Fingerprint, AlertOctagon, ClipboardList, Layers, MapPin, Scan,
-  Skull, Clock, Calendar, ArrowRight, Hash, Sparkles, ShieldAlert, ChevronDown
+  Skull, Clock, Calendar, ArrowRight, Hash, Sparkles, ShieldAlert, ChevronDown,
+  Home, Settings
 } from 'lucide-react'
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -17,6 +18,7 @@ import { BrandIntro } from './components/BrandIntro'
 import { LandingPage } from './components/LandingPage'
 import { LoginModal } from './components/LoginModal'
 import { HardeningArena } from './components/HardeningArena'
+import { ExecutiveDashboard } from './components/ExecutiveDashboard'
 
 const BASE_URL = ((import.meta as any).env?.VITE_API_URL || '').replace(/\/+$/, '')
 const API = `${BASE_URL}/api/v1`
@@ -188,7 +190,8 @@ export default function App() {
   const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem('hvision_intro_seen'))
   const [showLanding, setShowLanding] = useState(false)
   const [activeHub, setActiveHub] = useState('hub_command')
-  const [activeTab, setActiveTab] = useState('fleet')
+  const [activeTab, setActiveTab] = useState('dashboard')
+  const [searchQuery, setSearchQuery] = useState('')
   const [apiUp, setApiUp] = useState(false)
   const fleetApps = [
     { name: 'Core Payment API', url: 'https://pay.internal:8443', status: 'Healthy', ping: '12ms', attacks: 1420, blocked: 1420, active: true },
@@ -624,8 +627,9 @@ export default function App() {
       label: 'Command & Visibility',
       desc: 'Fleet telemetry, microservices & topology',
       icon: Boxes,
-      defaultTab: 'fleet',
+      defaultTab: 'dashboard',
       tabs: [
+        { id: 'dashboard',  label: 'Executive Dashboard', icon: Home },
         { id: 'fleet',      label: 'Fleet Command',    icon: Boxes },
         { id: 'executive',  label: 'Executive Metrics', icon: TrendingUp },
         { id: 'analytics',  label: 'SOC Analytics',    icon: BarChart2 },
@@ -687,6 +691,20 @@ export default function App() {
         { id: 'import',     label: 'Import Scan',      icon: Upload },
       ]
     }
+  ]
+
+  const SIDEBAR_NAV = [
+    { id: 'dashboard',   label: 'Dashboard',   icon: Home },
+    { id: 'findings',    label: 'Incidents',   icon: AlertTriangle, badge: critCount > 0 ? `${critCount}` : undefined },
+    { id: 'scanner',     label: 'Findings',    icon: Bug, badge: findings.length > 0 ? `${findings.length}` : undefined },
+    { id: 'patches',     label: 'Patches',     icon: Box },
+    { id: 'waf_builder', label: 'WAF',         icon: Shield },
+    { id: 'reports',     label: 'Reports',     icon: FileText },
+    { id: 'topology',    label: 'Topology',    icon: Network },
+    { id: 'analytics',   label: 'Analytics',   icon: BarChart2 },
+    { id: 'ai',          label: 'Agents',      icon: Bot },
+    { id: 'hardening',   label: 'Hardening (Phase 2)', icon: Flame, badge: 'NEW' },
+    { id: 'compliance',  label: 'Settings',    icon: Settings },
   ]
 
   const TABS = MASTER_HUBS.flatMap(h => h.tabs)
@@ -752,179 +770,168 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0d1117] text-[#e6edf3] flex" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+    <div className="min-h-screen bg-[#060b18] text-[#e2e8f0] flex" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
 
-      {/* ── SIDEBAR (CONSOLIDATED 5 MASTER HUBS) ─────────────────── */}
-      <aside className="w-64 bg-[#161b22] border-r border-[#30363d] flex flex-col shrink-0">
-        {/* Logo */}
-        <div className="px-4 py-4 border-b border-[#30363d] flex items-center justify-between">
+      {/* ── SIDEBAR (EXACT SOC REFERENCE THEME) ─────────────────── */}
+      <aside className="w-64 bg-[#080d1e] border-r border-[#152347] flex flex-col shrink-0">
+        {/* Brand Shield Logo */}
+        <div className="px-5 py-5 border-b border-[#152347] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-black font-extrabold shadow-[0_0_15px_rgba(0,240,255,0.3)]">
-              <Eye size={17} />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/30 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shadow-[0_0_20px_rgba(0,240,255,0.25)]">
+              <ShieldCheck size={22} className="text-cyan-400 drop-shadow-[0_0_8px_#00f0ff]" />
             </div>
             <div>
-              <p className="font-extrabold text-sm text-[#e6edf3] tracking-wider leading-none">H-VISION</p>
-              <p className="text-[#6e7681] text-[9px] font-mono mt-0.5">Autonomous SOC</p>
+              <h1 className="text-base font-extrabold text-white tracking-wide leading-tight">H-VISION</h1>
+              <p className="text-[10px] text-[#7082ab] font-medium leading-tight mt-0.5">Autonomous Security Operations Center</p>
             </div>
           </div>
           <button
             onClick={() => setShowLanding(true)}
             title="View Project Capabilities"
-            className="text-[#6e7681] hover:text-cyan-400 p-1 rounded hover:bg-[#21262d] transition-colors"
+            className="text-[#7082ab] hover:text-cyan-400 p-1.5 rounded-lg hover:bg-[#0f1c3f] transition-colors"
           >
             <Sparkles size={14} />
           </button>
         </div>
 
-        {/* 5 Master Hub Navigation */}
-        <nav className="flex-1 px-2 py-3 space-y-1 overflow-y-auto">
-          {MASTER_HUBS.map(hub => {
-            const isHubActive = activeHub === hub.id || hub.tabs.some(t => t.id === activeTab)
-            const HubIcon = hub.icon
+        {/* Navigation List matching Reference Image */}
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {SIDEBAR_NAV.map(item => {
+            const isActive = activeTab === item.id;
+            const Icon = item.icon;
             return (
-              <div key={hub.id} className="space-y-0.5">
-                <button
-                  onClick={() => selectHub(hub.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all text-left group
-                    ${isHubActive
-                      ? 'bg-gradient-to-r from-[#1f6feb]/20 to-[#1f6feb]/5 text-[#58a6ff] font-semibold border-l-2 border-[#58a6ff]'
-                      : 'text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#21262d]'}`}
-                >
-                  <HubIcon size={15} className={isHubActive ? 'text-[#58a6ff]' : 'text-[#6e7681] group-hover:text-[#c9d1d9]'} />
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate text-xs font-semibold leading-tight">{hub.label}</p>
-                    <p className="text-[10px] text-[#6e7681] truncate">{hub.desc}</p>
-                  </div>
-                  {hub.id === 'hub_simulation' && isRunning && (
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-ping shrink-0" />
-                  )}
-                  {hub.id === 'hub_simulation' && findings.length > 0 && !isRunning && (
-                    <span className="text-[10px] bg-red-900/60 text-red-300 px-1.5 py-0.2 rounded-full font-mono">
-                      {findings.length}
-                    </span>
-                  )}
-                </button>
-
-                {/* Sub-tabs shown if Hub is active */}
-                {isHubActive && (
-                  <div className="pl-4 pr-1 py-1 space-y-0.5 border-l border-[#30363d]/60 ml-3">
-                    {hub.tabs.map(t => {
-                      const SubIcon = t.icon
-                      const isSubActive = activeTab === t.id
-                      return (
-                        <button
-                          key={t.id}
-                          onClick={() => selectTab(t.id)}
-                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-all text-left
-                            ${isSubActive
-                              ? 'bg-[#1f6feb]/15 text-[#58a6ff] font-medium'
-                              : 'text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#21262d]/60'}`}
-                        >
-                          <SubIcon size={12} className={isSubActive ? 'text-[#58a6ff]' : 'text-[#6e7681]'} />
-                          <span className="truncate flex-1">{t.label}</span>
-                          {t.badge && (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-900/50 text-cyan-300 font-mono">
-                              {t.badge}
-                            </span>
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
+              <button
+                key={item.id}
+                onClick={() => selectTab(item.id)}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-left ${
+                  isActive
+                    ? 'bg-[#1762fc] text-white shadow-[0_4px_20px_rgba(23,98,252,0.4)]'
+                    : 'text-[#7082ab] hover:text-[#e2e8f0] hover:bg-[#0f1c3f]'
+                }`}
+              >
+                <Icon size={16} className={isActive ? 'text-white' : 'text-[#7082ab]'} />
+                <span className="flex-1 truncate">{item.label}</span>
+                {item.badge && (
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-red-950/70 text-red-400 border border-red-500/30'
+                  }`}>
+                    {item.badge}
+                  </span>
                 )}
-              </div>
-            )
+              </button>
+            );
           })}
         </nav>
 
-        {/* System Info & Credits */}
-        <div className="px-2 pb-2 border-t border-[#30363d] pt-2">
-          <button onClick={() => setShowCredits(true)} className="w-full flex items-center justify-center gap-2 text-[#6e7681] hover:text-[#8b949e] hover:bg-[#21262d] border border-transparent hover:border-[#30363d] rounded-md py-1.5 text-xs transition-all">
-            <Scan size={12} /> System Info & Credits
-          </button>
-        </div>
-
-        {/* User status */}
-        <div className="px-3 py-3 border-t border-[#30363d] space-y-1.5">
-          <div className="flex items-center gap-2 text-xs text-[#8b949e]">
-            <div className="w-6 h-6 rounded-full bg-[#1f6feb] flex items-center justify-center">
-              <User size={11} className="text-white" />
+        {/* Bottom System Status Widget matching Reference Image */}
+        <div className="p-3 border-t border-[#152347]">
+          <div className="rounded-xl bg-[#0b142e] border border-[#17254e] p-3 text-xs">
+            <p className="text-[#7082ab] text-[10px] uppercase font-semibold tracking-wider">System Status</p>
+            <div className="flex items-center gap-2 mt-1.5 text-emerald-400 font-bold">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 shadow-[0_0_10px_#10b981]" />
+              </span>
+              <span>Healthy</span>
             </div>
-            <span className="flex-1 truncate font-medium">{currentUser}</span>
-            <span className="text-[10px] uppercase bg-[#1f6feb]/20 text-[#58a6ff] px-1.5 py-0.5 rounded-md font-semibold">{currentRole}</span>
+            <p className="text-[10px] text-[#556994] font-mono mt-1">
+              Last Updated: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • {new Date().toLocaleTimeString()}
+            </p>
           </div>
-          <div className={`flex items-center gap-2 text-xs ${apiUp ? 'text-[#3fb950]' : 'text-red-400'}`}>
-            <Wifi size={11} />
-            <span>API {apiUp ? 'Online' : 'Offline'}</span>
-            <div className={`ml-auto w-1.5 h-1.5 rounded-full ${apiUp ? 'bg-[#3fb950]' : 'bg-red-400'}`} />
-          </div>
-          {critCount > 0 && (
-            <div className="flex items-center gap-2 text-xs text-[#f85149]">
-              <AlertCircle size={11} /><span>{critCount} Critical {highCount > 0 ? `+ ${highCount} High` : ''}</span>
-            </div>
-          )}
-          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-1.5 text-xs text-[#6e7681] hover:text-[#f85149] py-1 rounded-md hover:bg-[#21262d] transition-colors">
-            <LogOut size={11} /> Sign out
+          <button
+            onClick={handleLogout}
+            className="w-full mt-2 flex items-center justify-center gap-2 py-2 text-xs text-[#7082ab] hover:text-red-400 hover:bg-[#0f1c3f] rounded-lg transition-colors font-medium"
+          >
+            <LogOut size={13} />
+            <span>Logout</span>
           </button>
         </div>
       </aside>
 
-      {/* ── MAIN ─────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* ── MAIN CONTENT AREA ─────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col overflow-hidden bg-[#060b18]">
 
-        {/* Top bar */}
-        <header className="bg-[#161b22] border-b border-[#30363d] px-6 py-3 flex items-center justify-between">
-          <div>
-            <h2 className="text-[#e6edf3] font-semibold text-sm">{TABS.find(t => t.id === activeTab)?.label.replace(/\(\d+\)/,'').trim()}</h2>
-            <p className="text-[#6e7681] text-xs">H-VISION · Autonomous Security Operations Center</p>
+        {/* Top Header matching Reference Image */}
+        <header className="bg-[#080d1e] border-b border-[#152347] px-6 py-3.5 flex items-center justify-between">
+          {/* Search Box on Left */}
+          <div className="relative w-72 sm:w-80">
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#546894]" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search incidents, vulnerabilities..."
+              className="w-full bg-[#0c1630] border border-[#1b2c58] rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-[#546894] focus:outline-none focus:border-[#2563eb] transition-colors"
+            />
           </div>
-          <div className="flex items-center gap-2">
-            {compliance && (
-              <div className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold border ${
-                compliance.security_posture_score >= 70 ? 'bg-[#1a4a2e] border-[#2d6a3f] text-[#3fb950]' :
-                compliance.security_posture_score >= 40 ? 'bg-[#3d2d00] border-[#5a4000] text-[#d29922]' :
-                'bg-[#3d0c0c] border-[#5a1a1a] text-[#f85149]'
-              }`}>
-                <Gauge size={12} /> Score: {compliance.security_posture_score}/100
-              </div>
-            )}
-            {isRunning && (
-              <div className="flex items-center gap-1.5 bg-[#3d0c0c] border border-[#5a1a1a] rounded-md px-3 py-1.5 text-xs text-[#f85149] font-semibold">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#f85149] animate-ping" /> SCANNING {progress}%
-              </div>
-            )}
-            {critCount > 0 && !isRunning && (
-              <div className="flex items-center gap-1.5 bg-[#3d0c0c] border border-[#5a1a1a] rounded-md px-3 py-1.5 text-xs text-[#f85149] font-semibold">
-                <AlertCircle size={11} /> {critCount} Critical · {highCount} High
-              </div>
-            )}
-            <div className="flex items-center gap-1.5 bg-[#1a4a2e] border border-[#2d6a3f] rounded-md px-3 py-1.5 text-xs text-[#3fb950] font-semibold">
-              <Zap size={11} /> 4 Agents Active
+
+          {/* Right Header Status Controls */}
+          <div className="flex items-center gap-4">
+            {/* Live Online Badge */}
+            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse" />
+              <span>Online</span>
             </div>
+
+            {/* Notification Bell with Badge */}
+            <button 
+              onClick={() => selectTab('findings')}
+              className="relative p-2 rounded-xl bg-[#0c1630] border border-[#1b2c58] text-[#8fa3cf] hover:text-white transition-colors"
+              title="View Alerts"
+            >
+              <Bell size={16} />
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center shadow-[0_0_8px_#ef4444]">
+                {critCount > 0 ? critCount : 3}
+              </span>
+            </button>
+
+            {/* User Avatar Circle 'HI' */}
+            <div 
+              className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1d4ed8] to-[#1e40af] border border-cyan-500/40 text-white font-bold text-xs flex items-center justify-center shadow-[0_0_12px_rgba(0,240,255,0.25)] cursor-pointer"
+              title={`Logged in as ${currentUser || 'Administrator'}`}
+            >
+              HI
+            </div>
+
+            {/* Project Showcase & Replay Intro Shortcuts */}
             <button
               onClick={() => setShowLanding(true)}
-              className="flex items-center gap-1.5 bg-[#1f6feb]/15 border border-[#1f6feb]/40 hover:border-[#1f6feb] rounded-md px-3 py-1.5 text-xs text-[#58a6ff] font-semibold transition-colors"
-              title="View Project Capabilities & Architecture Overview"
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0c1630] border border-[#1b2c58] hover:border-cyan-500/40 text-xs text-cyan-300 font-medium transition-all"
             >
               <Eye size={12} /> Project Showcase
             </button>
             <button
               onClick={() => setShowIntro(true)}
-              className="flex items-center gap-1.5 bg-[#21262d] border border-[#30363d] hover:border-[#484f58] rounded-md px-3 py-1.5 text-xs text-[#8b949e] hover:text-[#e6edf3] font-semibold transition-colors"
-              title="Replay Neon Flicker Brand Intro"
+              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#0c1630] border border-[#1b2c58] text-xs text-[#8fa3cf] hover:text-white transition-all"
+              title="Replay Brand Intro"
             >
-              <Sparkles size={11} className="text-yellow-400" /> Intro
+              <Sparkles size={11} className="text-yellow-400" />
             </button>
-            <button onClick={exportPDF} className="flex items-center gap-1.5 bg-[#21262d] border border-[#30363d] hover:border-[#484f58] rounded-md px-3 py-1.5 text-xs text-[#c9d1d9] font-semibold transition-colors">
-              <Download size={11} /> Export PDF
-            </button>
-            <button onClick={poll} className="p-1.5 text-[#6e7681] hover:text-[#c9d1d9] rounded-md hover:bg-[#21262d] transition-colors">
+            <button 
+              onClick={poll} 
+              className="p-2 text-[#7082ab] hover:text-white rounded-lg hover:bg-[#0c1630] transition-colors"
+              title="Refresh Telemetry"
+            >
               <RefreshCw size={14} />
             </button>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6 bg-[#0d1117]">
+        <main className="flex-1 overflow-y-auto p-6 bg-[#060b18]">
+
+          {/* ═══════════════ EXECUTIVE COMMAND DASHBOARD (REFERENCE IMAGE) ═══════════════ */}
+          {activeTab === 'dashboard' && (
+            <ExecutiveDashboard
+              findings={findings}
+              onNavigate={(tab) => selectTab(tab)}
+              onLaunchScan={() => {
+                selectTab('scanner');
+                launchAttack();
+              }}
+              isScanning={isRunning}
+              complianceScore={compliance?.security_posture_score}
+            />
+          )}
 
           {/* Quick Sub-Tab Bar for Active Hub */}
           {(() => {
