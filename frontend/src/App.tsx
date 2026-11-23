@@ -8,7 +8,7 @@ import {
   ShieldCheck, Bug, Plus, Trash2, Bell, BellRing, Download,
   Gauge, Fingerprint, AlertOctagon, ClipboardList, Layers, MapPin, Scan,
   Skull, Clock, Calendar, ArrowRight, Hash, Sparkles, ShieldAlert, ChevronDown,
-  Home, Settings
+  Home, Settings, Box
 } from 'lucide-react'
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
